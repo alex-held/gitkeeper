@@ -8,12 +8,11 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var (
-	recursiveF = pflag.BoolP("recursive", "r", true, "gitkeeper -r .")
-	recursive  bool
+	recursive bool
+	empty     bool
 )
 
 func main() {
@@ -27,9 +26,7 @@ func main() {
 			if absPath, err = filepath.Abs(args[0]); err != nil {
 				return err
 			}
-
-			println(absPath)
-
+			
 			var directories []string
 			var emptyDirs []string
 
@@ -38,7 +35,7 @@ func main() {
 			if !recursive {
 				if dir, err := afero.IsDir(fs, absPath); err == nil && dir {
 					directories = append(directories, absPath)
-					if empty, err := afero.IsEmpty(fs, absPath); err == nil && empty {
+					if isEmpty, err := afero.IsEmpty(fs, absPath); err == nil && empty && isEmpty {
 						emptyDirs = append(emptyDirs, absPath)
 					}
 				}
@@ -51,7 +48,8 @@ func main() {
 				}
 				if fi.IsDir() {
 					directories = append(directories, path)
-					if empty, er := afero.IsEmpty(fs, path); er == nil && empty {
+
+					if isEmpty, er := afero.IsEmpty(fs, path); er == nil && empty && isEmpty {
 						emptyDirs = append(emptyDirs, path)
 					}
 				}
@@ -59,12 +57,17 @@ func main() {
 			})
 
 			fmt.Printf("Directories found: %d\n\n", len(directories))
-			fmt.Printf("Empty Directories found: %d\n\n", len(emptyDirs))
+
+			if empty {
+				fmt.Printf("Empty Directories found: %d\n\n", len(emptyDirs))
+			}
 
 			return err
 		},
 	}
-	addCmd.Flags().BoolVarP(&recursive, "recursive", "r", true, "gitkeeper -r .")
+
+	addCmd.Flags().BoolVarP(&recursive, "recursive", "r", true, "gitkeeper -r [OPTIONS] [PATH]")
+	addCmd.Flags().BoolVarP(&empty, "empty", "e", true, "gitkeeper -e [OPTIONS] [PATH]")
 
 	var rootCmd = &cobra.Command{Use: "gitkeeper"}
 	rootCmd.AddCommand(addCmd)
